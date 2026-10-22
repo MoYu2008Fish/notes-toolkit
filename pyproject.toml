@@ -27,5 +27,8 @@ hyperos-notes = "hyperos_notes_extract:main"
 coloros-notes = "coloros_notes_extract:main"
 hyperos-to-coloros = "hyperos_to_coloros_import:main"
 
+[project.gui-scripts]
+notes-toolkit-gui = "notes_gui:main"
+
 [tool.setuptools]
-py-modules = ["hyperos_notes_extract", "coloros_notes_extract", "hyperos_to_coloros_import"]
+py-modules = ["hyperos_notes_extract", "coloros_notes_extract", "hyperos_to_coloros_import", "notes_gui"]

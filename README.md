@@ -7,6 +7,7 @@
 | `hyperos_notes_extract.py` | HyperOS / MIUI 便签 → Markdown + 图片 / 录音 |
 | `coloros_notes_extract.py` | ColorOS / realme UI 便签 → Markdown + 图片 / 录音 |
 | `hyperos_to_coloros_import.py` | 把 HyperOS 导出结果导入 ColorOS 便签 |
+| `notes_gui.py` | 图形界面，封装以上三个工具 |
 
 > 所有工具只读写本机文件与 adb，不联网、不上传任何数据。
 
@@ -15,6 +16,14 @@
 - Python 3.8+
 - `adb`（Android platform-tools）
 - 手机开启「USB 调试」，并允许当前电脑
+
+## 图形界面
+
+```bash
+python3 notes_gui.py
+```
+
+三个工具各占一个标签页，填好路径、勾选选项后点「运行」，输出会实时显示在日志里。界面支持 English / 日本語 / 繁體中文 / 简体中文，右上角可切换（默认跟随系统语言）。依赖 Python 自带的 tkinter；若提示缺少 `_tkinter`，请安装带 Tk 的 Python（Homebrew 用户：`brew install python-tk`；Debian/Ubuntu：`sudo apt install python3-tk`）。安装为命令后也可以运行 `notes-toolkit-gui`。
 
 ## 一、HyperOS / MIUI 便签 → Markdown
 
