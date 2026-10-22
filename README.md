@@ -1,126 +1,139 @@
-# HyperOS / ColorOS 便签工具箱
+# HyperOS / ColorOS Notes Toolkit
 
-在本地提取小米、OPPO 系手机的便签，或在两个系统之间迁移。无需 root、无需登录账号、不经过云端。
+**English** · **[简体中文](README.zh-CN.md)** · **[繁體中文](README.zh-TW.md)** · **[日本語](README.ja.md)**
 
-| 脚本 | 用途 |
+Extract notes from Xiaomi and OPPO-family phones locally, or migrate them between the two systems. No root, no account login, no cloud.
+
+| Tool | Purpose |
 | --- | --- |
-| `hyperos_notes_extract.py` | HyperOS / MIUI 便签 → Markdown + 图片 / 录音 |
-| `coloros_notes_extract.py` | ColorOS / realme UI 便签 → Markdown + 图片 / 录音 |
-| `hyperos_to_coloros_import.py` | 把 HyperOS 导出结果导入 ColorOS 便签 |
-| `notes_gui.py` | 图形界面，封装以上三个工具 |
+| `hyperos_notes_extract.py` | HyperOS / MIUI notes → Markdown + images / recordings |
+| `coloros_notes_extract.py` | ColorOS / realme UI notes → Markdown + images / recordings |
+| `hyperos_to_coloros_import.py` | Import a HyperOS export into ColorOS Notes |
+| `notes_gui.py` | GUI (English / 日本語 / 繁體中文 / 简体中文) wrapping the three tools |
 
-> 所有工具只读写本机文件与 adb，不联网、不上传任何数据。
+> Everything reads and writes only local files and talks to the phone via adb. Nothing goes online and no data is uploaded.
 
-## 环境要求
+## Requirements
 
-- Python 3.8+
-- `adb`（Android platform-tools）
-- 手机开启「USB 调试」，并允许当前电脑
+- Python 3.8+ (with tkinter for the GUI)
+- `adb` (Android platform-tools) on your `PATH`
+- "USB debugging" enabled on the phone, with this computer authorized
 
-## 图形界面
+## Quick start (GUI)
+
+Complete workflow:
+
+1. **Install prerequisites**: Python 3.8+ with tkinter, and `adb`.
+2. **Get the tool**: `git clone https://github.com/MoYu2008Fish/notes-toolkit.git && cd notes-toolkit`
+3. **Prepare the phone**: enable *Developer options → USB debugging*, connect via USB and accept the authorization prompt. `adb devices` should list the phone as `device`.
+4. **Create a local backup on the phone** containing only Notes — see section 1 (Xiaomi) or 2 (ColorOS) below.
+5. **Launch the GUI**: `python3 notes_gui.py` (or `notes-toolkit-gui` if installed).
+6. **Export**: open the *HyperOS → Markdown* or *ColorOS → Markdown* tab. Leave "Backup" empty to pull the newest backup from the phone automatically, or pick an existing backup. Choose an output folder and press **Run**. When the log says it finished, press **Open output folder** to see the Markdown files and attachments.
+7. **Migrate to ColorOS (optional)**: switch to the *HyperOS → ColorOS* tab, choose the HyperOS export folder from step 6, tick "Push and restore automatically" and press **Run**. Restoring *appends* notes — don't run it twice.
+8. **Clean up**: once you've verified the export, delete the backup on the phone (backups are unencrypted).
+
+The language can be switched at the top right (defaults to your system language). **Stop** cancels a running job.
+
+> Missing tkinter? macOS (Homebrew): `brew install python-tk`. Debian/Ubuntu: `sudo apt install python3-tk`. The official Windows installer includes it.
+
+## 1. HyperOS / MIUI notes → Markdown
+
+### Why not `adb backup`
+
+Since Android 13, `adb backup` is restricted for non-debuggable apps, so Xiaomi Notes yields an empty backup. This tool uses Xiaomi's built-in "local backup" instead, which calls the app's own `NoteBackupAgent` and returns complete data.
+
+### Phone preparation
+
+> Xiaomi backup selects many categories by default. **Deselect everything first and keep only "Notes".**
+
+1. Open `Settings → More settings → Backup & restore → Phone backup & restore → Backup`
+2. Deselect all categories until none shows a selected count
+3. Expand "Other system app data" and tick only "Notes" — you should see something like `500MB 1/25 items`
+4. Tap "Back up now" → "Continue" → "Got it"
+5. On the progress page confirm the queue contains **only "Notes"**; cancel immediately if other apps appear
+
+The backup lives at:
+
+```
+/sdcard/MIUI/backup/AllBackup/<timestamp>/
+/sdcard/MIUI/backup/AllBackup/<timestamp>.zip
+```
+
+### CLI usage
 
 ```bash
-python3 notes_gui.py
-```
-
-三个工具各占一个标签页，填好路径、勾选选项后点「运行」，输出会实时显示在日志里。界面支持 English / 日本語 / 繁體中文 / 简体中文，右上角可切换（默认跟随系统语言）。依赖 Python 自带的 tkinter；若提示缺少 `_tkinter`，请安装带 Tk 的 Python（Homebrew 用户：`brew install python-tk`；Debian/Ubuntu：`sudo apt install python3-tk`）。安装为命令后也可以运行 `notes-toolkit-gui`。
-
-## 一、HyperOS / MIUI 便签 → Markdown
-
-### 为什么不用 `adb backup`
-
-Android 13 起，系统限制非 debuggable 应用使用 `adb backup`，小米便签会直接得到空备份。因此改用小米自带的「本地备份」通道，它调用便签自身的 `NoteBackupAgent`，可以得到完整数据。
-
-### 手机端准备
-
-> 小米备份默认会勾选多个分类，**务必先取消所有分类，只保留「笔记」**。
-
-1. 打开 `设置 → 更多设置 → 备份与恢复 → 手机备份恢复 → 备份`
-2. 取消所有已勾选分类，直到每个分类都不再显示已选数量
-3. 展开「其他系统应用数据」，只勾选「笔记」，确认显示类似 `500MB 1/25项`
-4. 点「立即备份」→「继续备份」→「我知道了」
-5. 在进度页确认队列里**只有「笔记」**；如果出现其他 App，立即取消
-
-备份位于：
-
-```
-/sdcard/MIUI/backup/AllBackup/<时间>/
-/sdcard/MIUI/backup/AllBackup/<时间>.zip
-```
-
-### 用法
-
-```bash
-# 自动拉取手机上最新的备份并导出
+# Pull the newest backup from the phone and export it
 python3 hyperos_notes_extract.py
 
-# 指定输出目录
+# Choose the output folder
 python3 hyperos_notes_extract.py -o ~/Documents/Notes
 
-# 解析已有备份（zip 或 .bak）
-python3 hyperos_notes_extract.py --from-backup ~/Downloads/<备份时间>.zip
+# Parse an existing backup (zip or .bak)
+python3 hyperos_notes_extract.py --from-backup ~/Downloads/<timestamp>.zip
 ```
 
-### 输出结构
+Extra options: `--keep-backup` (keep the pulled backup), `--delete-device-backup` (delete the phone's copy afterwards, irreversible), `--debug`.
+
+### Output layout
 
 ```
 notes_export/
 ├── notes/
-│   ├── 标题.md
-│   └── 文件夹/
-│       └── 标题.md
+│   ├── Title.md
+│   └── Folder/
+│       └── Title.md
 ├── assets/
 │   ├── <sha1>.jpg
 │   └── <sha1>.mp3
 └── notes.json
 ```
 
-Markdown 带 YAML 头（标题、创建时间、修改时间、文件夹），图片和录音已改为本地相对路径。
+Each Markdown file has a YAML header (title, created, modified, folder); images and recordings use local relative paths.
 
-### 限制
+### Limitations
 
-- 私密笔记、双开应用数据不在本地备份范围内
-- 待办清单暂未导出
-- 附件使用 SHA1 命名
-- 完全空白的笔记会被跳过
+- Private notes and dual-app data are not part of the local backup
+- To-do lists are not exported yet
+- Attachments are named by SHA1
+- Completely empty notes are skipped
 
-## 二、ColorOS / realme UI 便签 → Markdown
+## 2. ColorOS / realme UI notes → Markdown
 
-ColorOS 的本地备份同样是明文数据：`rich_note` 是 JSON，附件在 `files/file_backup.zip`。
+ColorOS local backups are plain data: `rich_note` is JSON and attachments are in `files/file_backup.zip`.
 
-### 手机端准备
+### Phone preparation
 
-1. 打开 `设置 → 账号与备份 → 备份与迁移 → 本地备份 → 新建备份`
-2. 取消所有分类，只勾选「系统偏好设置 → 便签」
-3. 开始备份，确认队列里只有「便签」
+1. Open `Settings → Account & backup → Backup & migration → Local backup → New backup`
+2. Deselect all categories, tick only "System preferences → Notes"
+3. Start the backup and confirm the queue contains only "Notes"
 
-备份位于：
+The backup lives at:
 
 ```
-/sdcard/Android/data/com.coloros.backuprestore/Backup/Data/<时间>/
+/sdcard/Android/data/com.coloros.backuprestore/Backup/Data/<timestamp>/
 ```
 
-### 用法
+### CLI usage
 
 ```bash
-# 自动拉取手机上最新的便签备份并导出
+# Pull the newest Notes backup from the phone and export it
 python3 coloros_notes_extract.py
 
-# 解析已拉取的备份目录（包含 Note/）
-python3 coloros_notes_extract.py --from-backup <备份目录>
+# Parse an already pulled backup folder (containing Note/)
+python3 coloros_notes_extract.py --from-backup <backup-dir>
 
-# 指定输出目录
+# Choose the output folder
 python3 coloros_notes_extract.py -o ~/Documents/ColorOSNotes
 ```
 
-### 输出结构
+### Output layout
 
 ```
 coloros_notes_export/
 ├── notes/
-│   ├── 标题.md
-│   └── 文件夹/
-│       └── 标题.md
+│   ├── Title.md
+│   └── Folder/
+│       └── Title.md
 ├── assets/
 │   └── <note-id>/
 │       ├── <attachment-id>.png
@@ -128,22 +141,22 @@ coloros_notes_export/
 └── notes.json
 ```
 
-### 限制
+### Limitations
 
-- ColorOS 本地备份只保存图片的 `_thumb.png` 缩略图，不包含原图
-- 私密笔记、双开应用数据不在备份范围内
-- 录音、手写文件会一并导出
+- ColorOS local backups only keep `_thumb.png` thumbnails of images, not the originals
+- Private notes and dual-app data are not included
+- Recordings and handwriting files are exported as well
 
-## 三、HyperOS → ColorOS 迁移
+## 3. HyperOS → ColorOS migration
 
-把「一」导出的 `notes_export` 转换成一份 ColorOS 本地备份，再用 ColorOS 自带的「本地备份 → 恢复」导入。
+Converts a `notes_export` from section 1 into a ColorOS local backup, which you then import with ColorOS's own "Local backup → Restore".
 
-### 前置条件
+### Prerequisites
 
-- 已完成 HyperOS 导出（`notes_export/notes.json` + `assets/`）
-- 手机上存在一份 ColorOS 便签本地备份，用作模板（工具也会自动拉取最新备份的模板）
+- A finished HyperOS export (`notes_export/notes.json` + `assets/`)
+- A ColorOS Notes local backup on the phone to use as a template (the tool also pulls the newest one automatically)
 
-### 用法
+### CLI usage
 
 ```bash
 python3 hyperos_to_coloros_import.py \
@@ -152,67 +165,67 @@ python3 hyperos_to_coloros_import.py \
   --push --restore
 ```
 
-参数：
-
-| 参数 | 说明 |
+| Option | Description |
 | --- | --- |
-| `--export` | HyperOS 导出目录 |
-| `--template` | ColorOS 备份模板目录；省略时自动从手机拉取 |
-| `--out` | 生成的 ColorOS 备份目录 |
-| `--push` | 生成后推送到手机 |
-| `--restore` | 推送后自动打开备份界面并执行恢复 |
-| `--limit N` | 只导入前 N 条（测试用） |
-| `--skip N` | 跳过前 N 条（断点续导） |
-| `--debug` | 打印每条笔记的转换信息 |
+| `--export` | HyperOS export folder |
+| `--template` | ColorOS backup template folder; pulled from the phone if omitted |
+| `--out` | Folder for the generated ColorOS backup |
+| `--push` | Push the backup to the phone after generating |
+| `--restore` | After pushing, open the backup UI and restore automatically |
+| `--limit N` | Import only the first N notes (for testing) |
+| `--skip N` | Skip the first N notes (resume an import) |
+| `--debug` | Print conversion info per note |
 
-### 工作方式
+### How it works
 
-1. 读取 `notes_export/notes.json` 和 `assets/`
-2. 把 Markdown 转成 ColorOS 的富文本 HTML（标题、粗体、列表、复选框、图片）
-3. 按 `localId/attachmentId` 生成 `Note/rich_note` 和 `Note/files/file_backup.zip`
-4. 复制 ColorOS 备份的配置文件和模板，生成完整备份目录
-5. 通过 adb 推送，并用 ColorOS 的恢复功能写入便签数据库
+1. Reads `notes_export/notes.json` and `assets/`
+2. Converts Markdown to ColorOS rich-text HTML (headings, bold, lists, checkboxes, images)
+3. Builds `Note/rich_note` and `Note/files/file_backup.zip` keyed by `localId/attachmentId`
+4. Copies the ColorOS backup config and template into a complete backup folder
+5. Pushes it with adb and uses ColorOS's restore function to write into the Notes database
 
-### 限制
+### Limitations
 
-- **录音不导入**：ColorOS 录音附件的格式与小米不同，正文会保留转写文字，并标注「原 HyperOS 录音未导入」
-- ColorOS 的修改时间会显示为导入时间，原始创建时间会保留
-- 恢复是「追加」操作，重复执行会产生重复笔记；可用 `--skip` 分批，或先在手机上清理
-- 大量笔记（数百条、数百张图）会生成数百 MB 的备份，恢复需要几分钟
+- **Recordings are not imported**: the ColorOS audio attachment format differs from Xiaomi's. The transcript is kept in the note body with an "original HyperOS recording not imported" marker
+- ColorOS shows the import time as the modified time; the original creation time is preserved
+- Restore *appends*; running it twice duplicates notes. Use `--skip` for batches, or clean up on the phone first
+- Hundreds of notes / images produce a backup of hundreds of MB and take minutes to restore
 
-## 安装为命令
+## Install as commands
 
 ```bash
-# 将 <repo-url> 替换为本仓库地址
-pipx install git+<repo-url>
+pipx install git+https://github.com/MoYu2008Fish/notes-toolkit.git
 
+notes-toolkit-gui      # GUI
 hyperos-notes --help
 coloros-notes --help
 hyperos-to-coloros --help
 ```
 
-也可以直接下载脚本运行，三个脚本只依赖 Python 标准库。
+You can also just download the scripts; they only need the Python standard library.
 
-## 隐私与安全
+## Privacy & security
 
-- 三个脚本都不联网、不上传数据
-- 导出的 `notes_export/`、`coloros_notes_export/`、`coloros_import_backup/` 已加入 `.gitignore`，不会被提交
-- 小米 / ColorOS 的本地备份都是**未加密**的，备份和导出文件请妥善保管
-- 导出完成后建议删除手机上的本地备份，或使用脚本的清理选项
-- 仓库中不包含任何个人笔记、账号、手机号或设备标识
+- No script or GUI window connects to the internet or uploads data
+- `notes_export/`, `coloros_notes_export/` and `coloros_import_backup/` are in `.gitignore` and won't be committed
+- Xiaomi / ColorOS local backups are **unencrypted** — keep backups and exports safe
+- Delete the local backup on the phone after exporting, or use the delete-device-backup option
+- This repository contains no personal notes, accounts, phone numbers or device identifiers
 
-## 开发
+## Development
 
 ```bash
-python3 -m py_compile hyperos_notes_extract.py coloros_notes_extract.py hyperos_to_coloros_import.py
+python3 -m py_compile hyperos_notes_extract.py coloros_notes_extract.py hyperos_to_coloros_import.py notes_gui.py
 ```
 
-## 相关项目
+Contributions are welcome — please open an issue or pull request. To add a GUI language, add an entry to `LANGS` and `STRINGS` in `notes_gui.py`.
 
-- [mi-note-export](https://github.com/ceynri/mi-note-export)：走小米云导出（已停止维护）
-- [mi-note-cli](https://github.com/ceynri/mi-note-cli)：走小米云，支持双向同步
+## Related projects
 
-本项目走本地备份，不依赖账号和云服务，适合把手机里的便签完整搬到本地的场景。
+- [mi-note-export](https://github.com/ceynri/mi-note-export): exports via Xiaomi Cloud (unmaintained)
+- [mi-note-cli](https://github.com/ceynri/mi-note-cli): via Xiaomi Cloud, two-way sync
+
+This project works from local backups and needs no account or cloud service — ideal for moving the full contents of your phone's notes to your computer.
 
 ## License
 

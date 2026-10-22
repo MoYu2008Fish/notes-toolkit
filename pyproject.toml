@@ -22,6 +22,10 @@ classifiers = [
 ]
 dependencies = []
 
+[project.urls]
+Homepage = "https://github.com/MoYu2008Fish/notes-toolkit"
+Issues = "https://github.com/MoYu2008Fish/notes-toolkit/issues"
+
 [project.scripts]
 hyperos-notes = "hyperos_notes_extract:main"
 coloros-notes = "coloros_notes_extract:main"
